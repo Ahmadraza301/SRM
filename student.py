@@ -2,6 +2,20 @@ from tkinter import *
 from PIL import Image,ImageTk
 from tkinter import ttk,messagebox
 import sqlite3
+import os
+import sys
+
+
+def resource_path(relative_path):
+    """Get absolute path to resource, works for dev and for PyInstaller"""
+    try:
+        # PyInstaller creates a temp folder and stores path in _MEIPASS
+        base_path = sys._MEIPASS
+    except Exception:
+        base_path = os.path.abspath(".")
+    
+    return os.path.join(base_path, relative_path)
+
 
 class Student:
     def __init__(self,root):
@@ -132,16 +146,16 @@ class Student:
 #-----------------------------------------------------------------------------------------------------------
 
     def add(self):
-        con=sqlite3.connect(database="rms.db")
+        con=sqlite3.connect(database=resource_path("rms.db"))
         cur=con.cursor()
         try:
             if self.var_roll.get()=="":
-                messagebox.showerror("Error","Roll Number should be required",parent=self.root)
+                messagebox.showerror("Error","Roll No should be required",parent=self.root)
             else:
                 cur.execute("select * from student where roll=?",(self.var_roll.get(),))
                 row=cur.fetchone()
                 if row!=None:
-                    messagebox.showerror("Error","Roll Number akready present",parent=self.root)
+                    messagebox.showerror("Error","Roll No already present",parent=self.root)
                 else:
                     cur.execute("insert into student (roll,name,email,gender,dob,contact,admission,course,state,city,pin,address) values(?,?,?,?,?,?,?,?,?,?,?,?)",(
                         self.var_roll.get(),
@@ -162,23 +176,25 @@ class Student:
                     self.show()
         except Exception as ex:
             messagebox.showerror("Error",f"Error due to: {str(ex)}")
+        finally:
+            con.close()
 
     def search(self):
-        con=sqlite3.connect(database="rms.db")
+        con=sqlite3.connect(database=resource_path("rms.db"))
         cur=con.cursor()
         try:
-            cur.execute("select * from student where roll=?",(self.var_search.get(),))
-            row=cur.fetchone()
-            if row!=None:
-                self.StudentTable.delete(*self.StudentTable.get_children())
+            cur.execute(f"select * from student where roll LIKE '%{self.var_search.get()}%'")
+            rows=cur.fetchall()
+            self.StudentTable.delete(*self.StudentTable.get_children())
+            for row in rows:
                 self.StudentTable.insert('',END,values=row)
-            else:
-                messagebox.showerror("Error","No record found!!!",parent=self.root)
         except Exception as ex:
             messagebox.showerror("Error",f"Error due to: {str(ex)}")
+        finally:
+            con.close()
 
     def show(self):
-        con=sqlite3.connect(database="rms.db")
+        con=sqlite3.connect(database=resource_path("rms.db"))
         cur=con.cursor()
         try:
             cur.execute("select * from student")
@@ -188,9 +204,11 @@ class Student:
                 self.StudentTable.insert('',END,values=row)
         except Exception as ex:
             messagebox.showerror("Error",f"Error due to: {str(ex)}")
+        finally:
+            con.close()
 
     def fetch_course(self):
-        con=sqlite3.connect(database="rms.db")
+        con=sqlite3.connect(database=resource_path("rms.db"))
         cur=con.cursor()
         try:
             cur.execute("select name from course")
@@ -200,6 +218,8 @@ class Student:
                     self.course_list.append(row[0])
         except Exception as ex:
             messagebox.showerror("Error",f"Error due to: {str(ex)}")
+        finally:
+            con.close()
 
     def get_data(self,ev):
         self.txt_roll.config(state='readonly')
@@ -221,11 +241,11 @@ class Student:
         self.txt_address.insert(END,row[11])
 
     def update(self):
-        con=sqlite3.connect(database="rms.db")
+        con=sqlite3.connect(database=resource_path("rms.db"))
         cur=con.cursor()
         try:
             if self.var_roll.get()=="":
-                messagebox.showerror("Error","Roll No. should be required",parent=self.root)
+                messagebox.showerror("Error","Roll No should be required",parent=self.root)
             else:
                 cur.execute("select * from student where roll=?",(self.var_roll.get(),))
                 row=cur.fetchone()
@@ -244,13 +264,15 @@ class Student:
                         self.var_city.get(),
                         self.var_pin.get(),
                         self.txt_address.get("1.0",END),
-                        self.var_roll.get(),
+                        self.var_roll.get()
                     ))
                     con.commit()
                     messagebox.showinfo("Success","Student Updated Successfully",parent=self.root)
                     self.show()
         except Exception as ex:
             messagebox.showerror("Error",f"Error due to: {str(ex)}")
+        finally:
+            con.close()
 
     def clear(self):
         self.show()
@@ -270,25 +292,22 @@ class Student:
         self.txt_roll.config(state=NORMAL)
 
     def delete(self):
-        con=sqlite3.connect(database="rms.db")
+        con=sqlite3.connect(database=resource_path("rms.db"))
         cur=con.cursor()
         try:
             if self.var_roll.get()=="":
                 messagebox.showerror("Error","Roll No should be required",parent=self.root)
             else:
-                cur.execute("select * from student where roll=?",(self.var_roll.get(),))
-                row=cur.fetchone()
-                if row==None:
-                    messagebox.showerror("Error","Please select student from the list",parent=self.root)
-                else:
-                    op=messagebox.askyesno("Confirm","Do you really want to delete?",parent=self.root)
-                    if op==True:
-                        cur.execute("delete from student where roll=?",(self.var_roll.get(),))
-                        con.commit()
-                        messagebox.showinfo("Delete","Student Deleted Successfully",parent=self.root)
-                        self.clear()
+                op=messagebox.askyesno("Confirm","Do you really want to delete?",parent=self.root)
+                if op==True:
+                    cur.execute("delete from student where roll=?",(self.var_roll.get(),))
+                    con.commit()
+                    messagebox.showinfo("Delete","Student Deleted Successfully",parent=self.root)
+                    self.clear()
         except Exception as ex:
             messagebox.showerror("Error",f"Error due to: {str(ex)}")
+        finally:
+            con.close()
 
         
 

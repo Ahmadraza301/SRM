@@ -5,6 +5,18 @@ import sqlite3
 from reportlab.lib.pagesizes import A4
 from reportlab.pdfgen import canvas
 import os
+import sys
+
+
+def resource_path(relative_path):
+    """Get absolute path to resource, works for dev and for PyInstaller"""
+    try:
+        # PyInstaller creates a temp folder and stores path in _MEIPASS
+        base_path = sys._MEIPASS
+    except Exception:
+        base_path = os.path.abspath(".")
+    
+    return os.path.join(base_path, relative_path)
 
 
 class Report:
@@ -78,7 +90,7 @@ class Report:
 
     # ---------------- SEARCH ----------------
     def search(self):
-        con = sqlite3.connect(database="rms.db")
+        con = sqlite3.connect(database=resource_path("rms.db"))
         cur = con.cursor()
         try:
             if self.var_search.get() == "":
@@ -98,9 +110,12 @@ class Report:
                     messagebox.showerror("Error", "No record found!!!", parent=self.root)
         except Exception as ex:
             messagebox.showerror("Error", f"Error due to: {str(ex)}")
+        finally:
+            con.close()
 
     # ---------------- CLEAR ----------------
     def clear(self):
+        self.var_search.set("")
         self.var_id = ""
         self.roll.config(text="")
         self.name.config(text="")
@@ -108,63 +123,53 @@ class Report:
         self.marks.config(text="")
         self.full.config(text="")
         self.per.config(text="")
-        self.var_search.set("")
 
     # ---------------- DELETE ----------------
     def delete(self):
-        con = sqlite3.connect(database="rms.db")
+        con = sqlite3.connect(database=resource_path("rms.db"))
         cur = con.cursor()
         try:
             if self.var_id == "":
                 messagebox.showerror("Error", "Search Student Result First", parent=self.root)
             else:
-                cur.execute("select * from result where rid=?", (self.var_id,))
-                row = cur.fetchone()
-                if row is None:
-                    messagebox.showerror("Error", "Invalid Student Result", parent=self.root)
-                else:
-                    op = messagebox.askyesno("Confirm", "Do you really want to delete?", parent=self.root)
-                    if op:
-                        cur.execute("delete from result where rid=?", (self.var_id,))
-                        con.commit()
-                        messagebox.showinfo("Delete", "Result Deleted Successfully", parent=self.root)
-                        self.clear()
+                op = messagebox.askyesno("Confirm", "Do you really want to delete?", parent=self.root)
+                if op == True:
+                    cur.execute("delete from result where rid=?", (self.var_id,))
+                    con.commit()
+                    messagebox.showinfo("Delete", "Result Deleted Successfully", parent=self.root)
+                    self.clear()
         except Exception as ex:
             messagebox.showerror("Error", f"Error due to: {str(ex)}")
+        finally:
+            con.close()
 
     # ---------------- EXPORT TO PDF ----------------
     def export_pdf(self):
         if self.var_id == "":
             messagebox.showerror("Error", "Search Student Result First", parent=self.root)
-            return
-
-        try:
-            # File name based on roll number
-            filename = f"Result_{self.roll.cget('text')}.pdf"
-
-            c = canvas.Canvas(filename, pagesize=A4)
-            width, height = A4
-
-            # Title
-            c.setFont("Helvetica-Bold", 20)
-            c.drawString(200, height - 100, "Student Result Report")
-
-            # Student Details
-            c.setFont("Helvetica", 14)
-            y = height - 150
-            c.drawString(100, y, f"Roll No: {self.roll.cget('text')}")
-            c.drawString(100, y - 30, f"Name: {self.name.cget('text')}")
-            c.drawString(100, y - 60, f"Course: {self.course.cget('text')}")
-            c.drawString(100, y - 90, f"Marks Obtained: {self.marks.cget('text')}")
-            c.drawString(100, y - 120, f"Total Marks: {self.full.cget('text')}")
-            c.drawString(100, y - 150, f"Percentage: {self.per.cget('text')}%")
-
-            c.save()
-
-            messagebox.showinfo("Success", f"PDF Exported Successfully:\n{os.path.abspath(filename)}", parent=self.root)
-
-        except Exception as ex:
-            messagebox.showerror("Error", f"Error due to: {str(ex)}", parent=self.root)
+        else:
+            try:
+                # Use resource_path for output directory
+                output_dir = resource_path(".")
+                if not os.path.exists(output_dir):
+                    os.makedirs(output_dir)
+                
+                filename = f"Result_{self.var_search.get()}.pdf"
+                filepath = os.path.join(output_dir, filename)
+                
+                c = canvas.Canvas(filepath, pagesize=A4)
+                c.drawString(100, 800, "STUDENT RESULT")
+                c.drawString(100, 750, f"Roll No: {self.roll.cget('text')}")
+                c.drawString(100, 700, f"Name: {self.name.cget('text')}")
+                c.drawString(100, 650, f"Course: {self.course.cget('text')}")
+                c.drawString(100, 600, f"Marks Obtained: {self.marks.cget('text')}")
+                c.drawString(100, 550, f"Total Marks: {self.full.cget('text')}")
+                c.drawString(100, 500, f"Percentage: {self.per.cget('text')}")
+                c.save()
+                
+                messagebox.showinfo("Success", f"PDF exported successfully to {filepath}", parent=self.root)
+            except Exception as ex:
+                messagebox.showerror("Error", f"Error due to: {str(ex)}", parent=self.root)
 
 
 if __name__ == "__main__":

@@ -2,6 +2,20 @@ from tkinter import *
 from PIL import Image,ImageTk
 from tkinter import ttk,messagebox
 import sqlite3
+import os
+import sys
+
+
+def resource_path(relative_path):
+    """Get absolute path to resource, works for dev and for PyInstaller"""
+    try:
+        # PyInstaller creates a temp folder and stores path in _MEIPASS
+        base_path = sys._MEIPASS
+    except Exception:
+        base_path = os.path.abspath(".")
+    
+    return os.path.join(base_path, relative_path)
+
 
 class Course:
     def __init__(self,root):
@@ -79,7 +93,7 @@ class Course:
 #-----------------------------------------------------------------------------------------------------------
 
     def add(self):
-        con=sqlite3.connect(database="rms.db")
+        con=sqlite3.connect(database=resource_path("rms.db"))
         cur=con.cursor()
         try:
             if self.var_course.get()=="":
@@ -88,7 +102,7 @@ class Course:
                 cur.execute("select * from course where name=?",(self.var_course.get(),))
                 row=cur.fetchone()
                 if row!=None:
-                    messagebox.showerror("Error","Course Name akready present",parent=self.root)
+                    messagebox.showerror("Error","Course Name already present",parent=self.root)
                 else:
                     cur.execute("insert into course (name,duration,charges,description) values(?,?,?,?)",(
                         self.var_course.get(),
@@ -101,9 +115,11 @@ class Course:
                     self.show()
         except Exception as ex:
             messagebox.showerror("Error",f"Error due to: {str(ex)}")
+        finally:
+            con.close()
 
     def search(self):
-        con=sqlite3.connect(database="rms.db")
+        con=sqlite3.connect(database=resource_path("rms.db"))
         cur=con.cursor()
         try:
             cur.execute(f"select * from course where name LIKE '%{self.var_search.get()}%'")
@@ -113,9 +129,11 @@ class Course:
                 self.CourseTable.insert('',END,values=row)
         except Exception as ex:
             messagebox.showerror("Error",f"Error due to: {str(ex)}")
+        finally:
+            con.close()
 
     def show(self):
-        con=sqlite3.connect(database="rms.db")
+        con=sqlite3.connect(database=resource_path("rms.db"))
         cur=con.cursor()
         try:
             cur.execute("select * from course")
@@ -125,6 +143,8 @@ class Course:
                 self.CourseTable.insert('',END,values=row)
         except Exception as ex:
             messagebox.showerror("Error",f"Error due to: {str(ex)}")
+        finally:
+            con.close()
 
     def get_data(self,ev):
         self.txt_courseName.config(state='readonly')
@@ -138,7 +158,7 @@ class Course:
         self.txt_description.insert(END,row[4])
 
     def update(self):
-        con=sqlite3.connect(database="rms.db")
+        con=sqlite3.connect(database=resource_path("rms.db"))
         cur=con.cursor()
         try:
             if self.var_course.get()=="":
@@ -160,6 +180,8 @@ class Course:
                     self.show()
         except Exception as ex:
             messagebox.showerror("Error",f"Error due to: {str(ex)}")
+        finally:
+            con.close()
 
     def clear(self):
         self.show()
@@ -171,25 +193,22 @@ class Course:
         self.txt_courseName.config(state=NORMAL)
 
     def delete(self):
-        con=sqlite3.connect(database="rms.db")
+        con=sqlite3.connect(database=resource_path("rms.db"))
         cur=con.cursor()
         try:
             if self.var_course.get()=="":
                 messagebox.showerror("Error","Course Name should be required",parent=self.root)
             else:
-                cur.execute("select * from course where name=?",(self.var_course.get(),))
-                row=cur.fetchone()
-                if row==None:
-                    messagebox.showerror("Error","Please select course from the list",parent=self.root)
-                else:
-                    op=messagebox.askyesno("Confirm","Do you really want to delete?",parent=self.root)
-                    if op==True:
-                        cur.execute("delete from course where name=?",(self.var_course.get(),))
-                        con.commit()
-                        messagebox.showinfo("Delete","Course Deleted Successfully",parent=self.root)
-                        self.clear()
+                op=messagebox.askyesno("Confirm","Do you really want to delete?",parent=self.root)
+                if op==True:
+                    cur.execute("delete from course where name=?",(self.var_course.get(),))
+                    con.commit()
+                    messagebox.showinfo("Delete","Course Deleted Successfully",parent=self.root)
+                    self.clear()
         except Exception as ex:
             messagebox.showerror("Error",f"Error due to: {str(ex)}")
+        finally:
+            con.close()
 
         
 

@@ -1,7 +1,19 @@
 from tkinter import *
 from PIL import Image, ImageTk
 from tkinter import ttk, messagebox
-import sqlite3, os
+import sqlite3, os, sys
+
+
+def resource_path(relative_path):
+    """Get absolute path to resource, works for dev and for PyInstaller"""
+    try:
+        # PyInstaller creates a temp folder and stores path in _MEIPASS
+        base_path = sys._MEIPASS
+    except Exception:
+        base_path = os.path.abspath(".")
+    
+    return os.path.join(base_path, relative_path)
+
 
 class Result:
     def __init__(self, root):
@@ -56,8 +68,7 @@ class Result:
 
         #----------------- image ------------------
         try:
-            BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-            image_path = os.path.join(BASE_DIR, "images", "result.jpg")
+            image_path = resource_path("images/result.jpg")
 
             self.bg_img = Image.open(image_path)
             self.bg_img = self.bg_img.resize((500, 300))
@@ -65,11 +76,17 @@ class Result:
 
             Label(self.root, image=self.bg_img).place(x=650, y=100)
         except Exception as e:
-            messagebox.showerror("Error", f"Image not found: {e}", parent=self.root)
+            # Create fallback image
+            fallback_img = Image.new('RGB', (500, 300), color='#f0f0f0')
+            from PIL import ImageDraw
+            draw = ImageDraw.Draw(fallback_img)
+            draw.text((250, 150), "Result Image\nNot Available", fill="#333333", anchor="mm")
+            self.bg_img = ImageTk.PhotoImage(fallback_img)
+            Label(self.root, image=self.bg_img).place(x=650, y=100)
 
     #-----------------------------------------------------------------------------------------------------------
     def fetch_roll(self):
-        con = sqlite3.connect(database="rms.db")
+        con = sqlite3.connect(database=resource_path("rms.db"))
         cur = con.cursor()
         try:
             cur.execute("select roll from student")
@@ -78,9 +95,11 @@ class Result:
                 self.roll_list = [row[0] for row in rows]
         except Exception as ex:
             messagebox.showerror("Error", f"Error due to: {str(ex)}")
+        finally:
+            con.close()
 
     def search(self):
-        con = sqlite3.connect(database="rms.db")
+        con = sqlite3.connect(database=resource_path("rms.db"))
         cur = con.cursor()
         try:
             cur.execute("select name, course from student where roll=?", (self.var_roll.get(),))
@@ -92,9 +111,11 @@ class Result:
                 messagebox.showerror("Error", "No record found!!!", parent=self.root)
         except Exception as ex:
             messagebox.showerror("Error", f"Error due to: {str(ex)}")
+        finally:
+            con.close()
 
     def add(self):
-        con = sqlite3.connect(database="rms.db")
+        con = sqlite3.connect(database=resource_path("rms.db"))
         cur = con.cursor()
         try:
             if self.var_name.get() == "":
@@ -118,6 +139,8 @@ class Result:
                     messagebox.showinfo("Success", "Result Added Successfully", parent=self.root)
         except Exception as ex:
             messagebox.showerror("Error", f"Error due to: {str(ex)}")
+        finally:
+            con.close()
 
     def clear(self):
         self.var_roll.set("Select")

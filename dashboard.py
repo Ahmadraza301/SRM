@@ -1,11 +1,23 @@
 import tkinter as tk
 from tkinter import ttk, messagebox
-from PIL import Image, ImageTk, ImageDraw
+from PIL import Image, ImageTk, ImageDraw, ImageFont
 from datetime import datetime
 import sqlite3
 from math import sin, cos, radians
 import threading
 import os
+import sys
+
+
+def resource_path(relative_path):
+    """Get absolute path to resource, works for dev and for PyInstaller"""
+    try:
+        # PyInstaller creates a temp folder and stores path in _MEIPASS
+        base_path = sys._MEIPASS
+    except Exception:
+        base_path = os.path.abspath(".")
+    
+    return os.path.join(base_path, relative_path)
 
 
 class RMS:
@@ -38,29 +50,58 @@ class RMS:
     def load_images(self):
         """Load all required images with fallback options."""
         try:
-            logo_path = os.path.join("images", "logo_p.png")
+            # Use resource_path for proper path resolution
+            logo_path = resource_path("images/logo_p.png")
             if os.path.exists(logo_path):
                 self.logo_dash = ImageTk.PhotoImage(Image.open(logo_path))
             else:
-                blank_logo = Image.new('RGB', (50, 50), color='gray')
+                # Create a fallback logo
+                blank_logo = Image.new('RGB', (50, 50), color='#033054')
+                draw = ImageDraw.Draw(blank_logo)
+                draw.text((25, 25), "SRM", fill="white", anchor="mm")
                 self.logo_dash = ImageTk.PhotoImage(blank_logo)
 
-            bg_path = os.path.join("images", "bg.png")
+            bg_path = resource_path("images/bg.png")
             if os.path.exists(bg_path):
                 bg_img = Image.open(bg_path)
                 self.bg_img = ImageTk.PhotoImage(bg_img.resize((920, 350)))
             else:
-                blank_bg = Image.new('RGB', (920, 350), color='lightgray')
+                # Create a fallback background
+                blank_bg = Image.new('RGB', (920, 350), color='#f0f0f0')
+                draw = ImageDraw.Draw(blank_bg)
+                draw.text((460, 175), "Student Result\nManagement System", fill="#333333", anchor="mm", font=ImageFont.load_default())
                 self.bg_img = ImageTk.PhotoImage(blank_bg)
 
-            clock_bg_path = os.path.join("images", "c.png")
+            clock_bg_path = resource_path("images/c.png")
             if os.path.exists(clock_bg_path):
                 self.clock_bg = Image.open(clock_bg_path).resize((300, 300))
             else:
-                self.clock_bg = Image.new('RGB', (300, 300), color='darkblue')
+                self.clock_bg = Image.new('RGB', (300, 300), color='#081923')
 
         except Exception as e:
-            raise Exception(f"Image loading failed: {str(e)}")
+            print(f"Image loading error: {e}")
+            # Create basic fallback images
+            self.create_fallback_images()
+
+    def create_fallback_images(self):
+        """Create basic fallback images when loading fails"""
+        try:
+            # Fallback logo
+            blank_logo = Image.new('RGB', (50, 50), color='#033054')
+            draw = ImageDraw.Draw(blank_logo)
+            draw.text((25, 25), "SRM", fill="white", anchor="mm")
+            self.logo_dash = ImageTk.PhotoImage(blank_logo)
+
+            # Fallback background
+            blank_bg = Image.new('RGB', (920, 350), color='#f0f0f0')
+            draw = ImageDraw.Draw(blank_bg)
+            draw.text((460, 175), "Student Result\nManagement System", fill="#333333", anchor="mm")
+            self.bg_img = ImageTk.PhotoImage(blank_bg)
+
+            # Fallback clock background
+            self.clock_bg = Image.new('RGB', (300, 300), color='#081923')
+        except Exception as e:
+            print(f"Fallback image creation failed: {e}")
 
     def setup_ui(self):
         """Setup all UI components."""
@@ -197,7 +238,9 @@ class RMS:
     def update_counts(self):
         def fetch_counts():
             try:
-                con = sqlite3.connect(database="rms.db")
+                # Use resource_path for database
+                db_path = resource_path("rms.db")
+                con = sqlite3.connect(database=db_path)
                 cur = con.cursor()
                 cur.execute("SELECT COUNT(*) FROM course")
                 self.course_count = cur.fetchone()[0]

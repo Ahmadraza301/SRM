@@ -1,12 +1,27 @@
 # -*- mode: python ; coding: utf-8 -*-
 
-
 a = Analysis(
     ['report.py'],
     pathex=[],
     binaries=[],
-    datas=[],
-    hiddenimports=[],
+    datas=[
+        ('images', 'images'), 
+        ('rms.db', '.'),
+        ('course.py', '.'),
+        ('student.py', '.'),
+        ('result.py', '.'),
+        ('dashboard.py', '.')
+    ],
+    hiddenimports=[
+        'PIL._tkinter_finder',
+        'tkinter',
+        'tkinter.ttk',
+        'tkinter.messagebox',
+        'sqlite3',
+        'reportlab',
+        'reportlab.lib.pagesizes',
+        'reportlab.pdfgen'
+    ],
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
@@ -14,6 +29,7 @@ a = Analysis(
     noarchive=False,
     optimize=0,
 )
+
 pyz = PYZ(a.pure)
 
 exe = EXE(
